@@ -23,8 +23,8 @@ type Page struct {
 const LENGTH = 8
 
 func init() {
-		http.HandleFunc("/", new_pasty);
-		http.HandleFunc("/paste", handle_paste);
+		http.HandleFunc("/", HandleHome);
+		http.HandleFunc("/paste", HandleNewPaste);
 }
 
 func write_error(writer io.Writer, err os.Error) {
@@ -34,7 +34,7 @@ func write_error(writer io.Writer, err os.Error) {
 		fmt.Fprint(writer, "err: " + err.String())
 }
 
-func new_pasty(writer http.ResponseWriter, request *http.Request) {
+func HandleHome(writer http.ResponseWriter, request *http.Request) {
 		if(request.URL.Path == "/") {
 			temp, err := template.ParseFile("html/index.html", nil);
 			if(err != nil) {
@@ -44,25 +44,17 @@ func new_pasty(writer http.ResponseWriter, request *http.Request) {
 			temp.Execute(writer, &Page {})
 		} else {
 				var err os.Error
-				path := request.URL.Path[1:]
-				context := appengine.NewContext(request)
-				query := datastore.NewQuery("page").Filter("UrlId =",path) 
-				for t := query.Run(context);; {
-						var page Page;
-						_, err = t.Next(&page)
-						if err == datastore.Done {
-								break
-						}
-						if err != nil {
-								write_error(writer, err)
-								return
-						}
-						RenderPage(&page, writer)
+				urlid := request.URL.Path[1:]
+				page, err := GetPageFromDataStore(urlid, request)
+				if(err != nil) {
+						write_error(writer, err)
+				}else {
+						RenderPage(page, writer)
 				}
 		}
 }
 
-func handle_paste(writer http.ResponseWriter, request *http.Request) {
+func HandleNewPaste(writer http.ResponseWriter, request *http.Request) {
 		err := request.ParseForm() 
 		if(err != nil) {
 				write_error(writer, err)
@@ -78,14 +70,37 @@ func handle_paste(writer http.ResponseWriter, request *http.Request) {
 				write_error(writer, err)
 				return
 		}
-		err = StorePage(page, request)
-		if(err != nil) {
-				write_error(writer, err)
-				return
+		// check if we already have a page
+		// and not store it again
+		oldpage, err := GetPageFromDataStore(page.UrlId, request)
+		if(oldpage == nil) {
+			err = StorePage(page, request)
+			if(err != nil) {
+					write_error(writer, err)
+					return
+			}
 		}
-		//RenderPage(page, writer)
-		//fmt.Fprint(writer, page.UrlId)
 		http.Redirect(writer, request, "/"+page.UrlId[0:LENGTH], http.StatusFound)
+}
+
+func GetPageFromDataStore(urlid string, request *http.Request) (*Page, os.Error) {
+				context := appengine.NewContext(request)
+				query := datastore.NewQuery("page").Filter("UrlId =",urlid) 
+				var page Page;
+				for t := query.Run(context);; {
+						_, err := t.Next(&page)
+						if err == datastore.Done {
+								break
+						}
+						if err != nil {
+								return nil, err
+						}
+				}
+				if(page.UrlId == urlid) {
+						return &page, nil
+				} 
+
+				return nil, nil
 }
 
 func StorePage(page *Page, request *http.Request) os.Error { 
