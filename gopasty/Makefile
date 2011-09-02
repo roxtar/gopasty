@@ -5,4 +5,4 @@ deploy:
 	appcfg.py update ..
 
 test: 
-	6g $(SRC) && dev_appserver.py ..
+	dev_appserver.py ..
