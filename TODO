@@ -1,0 +1,5 @@
+- Better CSS
+- The URL is calculated using the MD5 sum of the text. Due to this even if you
+  have the same text but with a different language, it will return
+  the text syntax highlighted with the language it was first saved with.
+- Raw code
