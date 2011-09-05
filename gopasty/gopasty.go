@@ -44,12 +44,28 @@ func HandleHome(writer http.ResponseWriter, request *http.Request) {
 			temp.Execute(writer, &Page {})
 		} else {
 				var err os.Error
-				urlid := request.URL.Path[1:]
+				var is_raw = false
+				var raw_prefix = "/raw/"
+				var urlid string
+				if(strings.Contains(request.URL.Path, raw_prefix)) {
+						is_raw = true
+						urlid = request.URL.Path[len(raw_prefix):]
+				} else {
+						urlid = request.URL.Path[1:]
+				}
 				page, err := GetPageFromDataStore(urlid, request)
 				if(err != nil) {
 						write_error(writer, err)
-				}else {
-						RenderPage(page, writer)
+						return
+				}
+				if(is_raw){
+						RenderPageRaw(page, writer)
+				} else {
+						err = RenderPage(page, writer)
+						if(err != nil) {
+								write_error(writer, err)
+								return
+						}
 				}
 		}
 }
@@ -85,7 +101,7 @@ func HandleNewPaste(writer http.ResponseWriter, request *http.Request) {
 
 func GetPageFromDataStore(urlid string, request *http.Request) (*Page, os.Error) {
 				context := appengine.NewContext(request)
-				query := datastore.NewQuery("page").Filter("UrlId =",urlid) 
+				query := datastore.NewQuery("page").Filter("UrlId =",urlid)
 				var page Page;
 				for t := query.Run(context);; {
 						_, err := t.Next(&page)
@@ -98,7 +114,7 @@ func GetPageFromDataStore(urlid string, request *http.Request) (*Page, os.Error)
 				}
 				if(page.UrlId == urlid) {
 						return &page, nil
-				} 
+				}
 
 				return nil, nil
 }
@@ -123,21 +139,29 @@ func RenderPage(page *Page, writer http.ResponseWriter) os.Error {
 }
 
 
+func RenderPageRaw(page *Page, writer http.ResponseWriter) os.Error {
+		header := writer.Header()
+		header.Set("Content-Type", "text")
+		fmt.Fprint(writer, page.Text)
+		return nil
+}
+
+
 func NewPage(text string, language string) (*Page, os.Error) {
 
 		// TODO: We should have just one instance of the MD5 hash
 		// and reuse it
 		var md5hash hash.Hash = md5.New()
-		md5hash.Write([]byte(text))
-		var urlid string
-		urlid, err := ByteToString(md5hash.Sum()) 
+		md5hash.Write([]byte(text + language))
+		var url_hash string
+		url_hash, err := ByteToString(md5hash.Sum()) 
 		if(err != nil) {
 				return nil, err
 		}
 		page := &Page {Text:text,
 					Language: language,
 					LanguageLower: strings.ToLower(language),
-					UrlId:urlid[0:LENGTH]}
+					UrlId:url_hash[0:LENGTH]}
 		return page, nil
 }
 
