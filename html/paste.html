@@ -6,19 +6,19 @@
 		<link rel="stylesheet" type="text/css" href="/styles/default.css"/>
 		<script type="text/javascript" src="js/syntaxhighlighter/shCore.js"></script>
 		<script type="text/javascript"
-		src="js/syntaxhighlighter/shBrush{Language}.js"></script>
+                src="js/syntaxhighlighter/shBrush{{.Language}}.js"></script>
 		<link type="text/css" rel="stylesheet" href="styles/shCoreDefault.css"/>
 		<script type="text/javascript">SyntaxHighlighter.all();</script>
 	</head>
 	<body>
-	<script type="syntaxhighlighter" class="brush: {LanguageLower}"><![CDATA[{Text|html}]]>
+            <script type="syntaxhighlighter" class="brush: {{.LanguageLower}}"><![CDATA[{{.Text|html}}]]>
 	</script>
 	<p>
 	Link : <a
-	href="http://gopasty.appspot.com/{UrlId}">http://gopasty.appspot.com/{UrlId}</a>
+            href="http://gopasty.appspot.com/{{.UrlId}}">http://gopasty.appspot.com/{{.UrlId}}</a>
 	<br/>
 	Raw: <a
-	href="http://gopasty.appspot.com/raw/{UrlId}">http://gopasty.appspot.com/raw/{UrlId}</a>
+            href="http://gopasty.appspot.com/raw/{{.UrlId}}">http://gopasty.appspot.com/raw/{{.UrlId}}</a>
 	</p>
 	</body>
 </html>
